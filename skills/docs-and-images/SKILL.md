@@ -1,17 +1,34 @@
 ---
 name: docs-and-images
 description: >-
-  Get clean, structured input out of documents and still images: PDF text with headings and tables
-  (as Markdown and CSV), automatic detection of scanned / image-only pages that need OCR or viewing,
-  page rendering for charts, and tiling of long screenshots, posters and dashboards so small print
-  survives a vision model's downscaling. Use whenever the input is a PDF, scanned file, slide export,
-  long chat screenshot, poster, infographic, whiteboard photo or any image with text that must be read,
-  summarised, compared or quoted accurately. PDF 提取、扫描件、表格、长截图、海报、图片看不清小字，都用这个。
+  Get everything out of documents and still images, including the parts a normal read skips: PDF text
+  with headings and tables (Markdown + CSV), scanned / image-only pages detected and rendered for OCR,
+  PowerPoint speaker notes and hidden slides, Word comments, tracked changes, headers, footnotes and
+  embedded images, Excel hidden and very-hidden sheets, and tiling of long screenshots, posters and
+  dashboards so small print survives a vision model's downscaling. Use whenever the input is a PDF, scan,
+  .pptx, .docx, .xlsx, long screenshot, poster, infographic or any image with text that must be read,
+  summarised, compared or quoted accurately. PDF、扫描件、PPT 备注、隐藏页、批注、隐藏表、长截图、小字，都用这个。
 ---
 
-# docs-and-images：文档和图片的干净输入
+# docs-and-images：文档和图片，连藏着的一起读
 
-文档类输入出错，通常不是因为模型理解不了，而是**它拿到的东西就是乱的**：表格被拍平成一串文字、扫描页根本没有文字层、长截图被缩小到看不清。
+文档类输入出错，通常不是因为模型理解不了，而是**它拿到的东西就是残缺的**：表格被拍平成一串文字，扫描页根本没有文字层，长截图被缩到看不清，演讲备注、批注、隐藏工作表压根没被读出来。
+
+## Office：office_extract.py
+
+```bash
+python ${CLAUDE_SKILL_DIR}/scripts/office_extract.py deck.pptx notes.docx data.xlsx --out-dir office/
+```
+
+只用标准库（zip + XML），任何环境都能跑。每个文件输出一份 `.md`（给模型读）和一份 `.found.json`（交给 `input-audit/scripts/coverage.py office` 对账）：
+
+| 格式 | 除了正文，还会提取 |
+|---|---|
+| `.pptx` | 按放映顺序排列的所有页（隐藏页会标出）、**演讲备注**、图表数值、图片数量 |
+| `.docx` | 页眉页脚、脚注、**批注（带作者）**、**修订（插入/删除）**、嵌入图片数量 |
+| `.xlsx` | **所有工作表，包括 hidden / veryHidden 的**、单元格值（默认前 200 行）、公式数量 |
+
+实测（`examples/short-video`）：演讲备注里的"其实已经决定选 B"、隐藏页上的"供应商可能延期两周"、批注"这一条要改，先别发"、隐藏表里和汇总表对不上的 130，全部提取了出来。这些内容按常规方式读取全都看不到：只读幻灯片正文、只读 Word 正文、默认只读第一张工作表。
 
 ## PDF：pdf_extract.py
 
@@ -54,6 +71,6 @@ python ${CLAUDE_SKILL_DIR}/scripts/tile_image.py photo.jpg --fit --out small.jpg
 | 表格 | 先 OCR 或 PDF 表格提取，再看图确认行列 |
 | 照片里的场景、人物动作 | 直接看图 |
 
-## Office 文件
+## Office 的版式和图片
 
-`.docx` / `.pptx` / `.xlsx` 如果环境里有对应的专门 skill，就用它们。没有的话：python-docx / python-pptx / openpyxl 读结构；需要看版式时，先用 LibreOffice 转成 PDF（`soffice --headless --convert-to pdf`），再走上面的 PDF 流程。
+`office_extract.py` 取出的是文字和结构。版式、图表的样子、嵌入图片的内容，要先用 LibreOffice 转成 PDF（`soffice --headless --convert-to pdf`），再走上面的 PDF 流程（`--render all`）去看图。环境里如果有专门处理 docx / pptx / xlsx 的 skill，修改文件时用它们。

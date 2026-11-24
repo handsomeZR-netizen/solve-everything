@@ -2,7 +2,7 @@
 
 > 本文件中的 FunASR 代码依据其官方 README 整理，没有在本仓库的测试中运行过。用之前先拿一段已知内容的音频验证。
 
-## FunASR Paraformer-zh（中文会议）
+## FunASR Paraformer-zh（中文长音频）
 
 ```python
 # pip install funasr modelscope
@@ -10,7 +10,7 @@ from funasr import AutoModel
 
 model = AutoModel(model="paraformer-zh", vad_model="fsmn-vad", punc_model="ct-punc",
                   spk_model="cam++", device="cpu")
-res = model.generate(input="audio.wav", batch_size_s=300, hotword="北极星 压测")
+res = model.generate(input="audio.wav", batch_size_s=300, hotword="傅里叶 卷积")
 for s in res[0].get("sentence_info", []):
     # start / end 单位是毫秒；spk 是聚类出来的说话人编号
     print(s["start"] / 1000, s["end"] / 1000, s.get("spk"), s["text"])

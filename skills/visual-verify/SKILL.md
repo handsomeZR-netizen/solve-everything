@@ -17,6 +17,7 @@ description: >-
 - 置信度条上有一块红色，正好落在一个人名上：要核实。
 - 歌词竖线比人声起点早了半秒：对轴错了。
 - 二十张"不同的幻灯片"里有三张其实一样：翻页检测误报了。
+- 画面条之间有一段空白：那里发生过什么？可能是没被检测到的闪现。
 
 ## 时间线图：timeline_plot.py
 
@@ -25,7 +26,7 @@ python ${CLAUDE_SKILL_DIR}/scripts/timeline_plot.py --timeline timeline.jsonl --
 python ${CLAUDE_SKILL_DIR}/scripts/timeline_plot.py --timeline timeline.jsonl --row 120 --t0 600 --t1 1800 --out plots/part
 ```
 
-每行 `--row` 秒（默认 60），从上到下依次是：时间刻度、响度、每个说话人一条（条内写着这句话的开头）、逐词置信度（红 < 0.5 < 黄 < 0.8 < 绿）、屏幕页（编号 + OCR 首行，灰色是 dynamic 段）、声音事件。宽 1500 px，每页高度不超过 1500 px，自动分页。
+每行 `--row` 秒（默认 60），从上到下依次是：时间刻度、响度、每个说话人一条（条内写着这句话的开头）、逐词置信度（红 < 0.5 < 黄 < 0.8 < 绿）、画面状态（编号 + OCR 首行；灰色是 dynamic 段，黄色是只停留约 1 秒的闪现）、声音事件。宽 1500 px，每页高度不超过 1500 px，自动分页。
 
 ## 联系表：contact_sheet.py
 

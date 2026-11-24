@@ -5,17 +5,17 @@
     "url": "https://github.com/handsomeZR-netizen"
   },
   "metadata": {
-    "description": "Multimodal processing skills: LLM + code for audio, video, screens, documents and music.",
-    "version": "0.1.0"
+    "description": "Squeeze every input dry before asking for output: multimodal skills with input audit and coverage proof.",
+    "version": "0.2.0"
   },
   "plugins": [
     {
       "name": "solve-everything",
       "source": "./",
-      "description": "12 skills that turn recordings, screen captures, PDFs and songs into timestamped, confidence-scored input, then into output people can act on.",
-      "version": "0.1.0",
+      "description": "13 skills: inventory, transcribe, read screens and documents (including what a quick read misses), cross-check, prove coverage, then write output any agent can trust.",
+      "version": "0.2.0",
       "category": "productivity",
-      "tags": ["multimodal", "asr", "ocr", "meeting-minutes", "video", "audio", "pdf"]
+      "tags": ["multimodal", "input-audit", "coverage", "asr", "ocr", "video", "audio", "pdf", "office", "agents"]
     }
   ]
 }

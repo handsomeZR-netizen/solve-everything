@@ -11,8 +11,8 @@ Three checks, use any combination:
   --lint               filler phrases that carry no information (深入讨论, 达成共识, 值得注意的是 ...).
 
 usage:
-  python coverage_check.py --output minutes.md --facts facts.json --lint
-  python coverage_check.py --output minutes.md --source timeline.md
+  python coverage_check.py --output summary.md --facts facts.json --lint
+  python coverage_check.py --output summary.md --source timeline.md
 
 facts.json: [{"id": "D1", "kind": "decision", "text": "上线改到12月15日", "must": ["12月15"]}, ...]
 """
@@ -43,6 +43,7 @@ def norm(s):
     """Canonical form so equivalent spellings match: 12月1号 == 12月1日, 4万8 == 4.8万,
     300毫秒 == 300ms, 星期一 == 周一, full-width == half-width."""
     s = unicodedata.normalize("NFKC", s).lower()
+    s = re.sub(r"[*_`~]+", "", s)  # Markdown emphasis must not hide a match: **没**被处理 == 没被处理
     s = re.sub(r"\s+", "", s)
     s = re.sub(r"(\d{1,2}月\d{1,2})号", r"\1日", s)
     s = re.sub(r"(\d+)万(\d)(?![\d.万])", r"\1.\2万", s)

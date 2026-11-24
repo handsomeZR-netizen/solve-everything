@@ -68,7 +68,7 @@ def main():
         if s not in speakers:
             speakers.append(s)
     color = {s: PALETTE[i % len(PALETTE)] for i, s in enumerate(speakers)}
-    slides = [r for r in rows if r["src"] == "slide"]
+    slides = [r for r in rows if r["src"] in ("slide", "flash")]
     events = [r for r in rows if r["src"] == "event"]
 
     energy, e_hop = None, 0.05
@@ -145,6 +145,8 @@ def main():
                         if s["t1"] > a and s["t0"] < b:
                             dyn = "dynamic" in s.get("flags", [])
                             fill = (200, 200, 200) if dyn else ((205, 225, 245) if j % 2 == 0 else (225, 210, 240))
+                            if s["src"] == "flash":
+                                fill = (250, 204, 21)
                             x0, x1 = X(s["t0"]), X(s["t1"])
                             d.rectangle([x0, y + 1, max(x0 + 1, x1), y + h - 1], fill=fill, outline=(150, 150, 170))
                             first = (s.get("text") or "").split("\n")[0]

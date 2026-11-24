@@ -4,7 +4,7 @@
 Inputs
   --asr   JSONL from transcribe.py (segments with "words": [[start, end, word, prob], ...])
   --diar  diarization result: RTTM, or JSON/JSONL rows {"start", "end", "speaker"}
-  --names optional JSON {"SPK_0": "王总", ...} (only names a human confirmed)
+  --names optional JSON {"SPK_0": "主持人", ...} (only names a human confirmed)
 
 Output JSONL turns:
   {"start", "end", "speaker", "text", "conf", "n_words", "overlap": bool}
@@ -148,7 +148,7 @@ def main():
         pass
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--asr", required=True); ap.add_argument("--diar", required=True)
-    ap.add_argument("--names", help='JSON {"SPK_0": "王总"}')
+    ap.add_argument("--names", help='JSON {"SPK_0": "主持人"}')
     ap.add_argument("--snap", type=float, default=0.5, help="max distance to borrow a speaker for unmatched words")
     ap.add_argument("--gap", type=float, default=1.2, help="silence that splits a turn of the same speaker")
     ap.add_argument("--out", required=True)

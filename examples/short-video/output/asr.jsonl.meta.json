@@ -1,0 +1,31 @@
+{
+ "audio": "work/audio.wav",
+ "duration_s": 50.37,
+ "model": "large-v3-turbo",
+ "device": "cpu",
+ "compute_type": "int8",
+ "language": "zh",
+ "params": {
+  "language": "zh",
+  "task": "transcribe",
+  "beam_size": 5,
+  "temperature": 0.0,
+  "condition_on_previous_text": false,
+  "word_timestamps": true,
+  "initial_prompt": "以下是普通话的句子，使用简体中文。",
+  "hotwords": null,
+  "vad_filter": true,
+  "vad_parameters": {
+   "min_silence_duration_ms": 700,
+   "speech_pad_ms": 300
+  },
+  "no_speech_threshold": 0.6,
+  "log_prob_threshold": -1.0,
+  "compression_ratio_threshold": 2.4
+ },
+ "segments": 10,
+ "dropped_hallucinations": 0,
+ "load_s": 9.3,
+ "asr_s": 37.8,
+ "rtf": 0.75
+}

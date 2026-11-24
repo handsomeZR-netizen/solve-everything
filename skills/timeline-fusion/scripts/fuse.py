@@ -12,23 +12,29 @@ inputs (give at least one):
 outputs:
   --out timeline.jsonl   rows {"t0", "t1", "src", "spk", "text", "conf", "flags", "ref"}
   --md  timeline.md      one section per slide (or every --section seconds); each utterance as
-                         "- [mm:ss] 王总：..." with low-confidence words marked {词?}
+                         "- [mm:ss] 主持人：..." with low-confidence words marked {词?}
 
 usage:
   python fuse.py --asr turns.jsonl --slides slides/segments.json --events sv.jsonl \
-                 --out timeline.jsonl --md timeline.md --title "北极星周会"
+                 --out timeline.jsonl --md timeline.md --title "第3讲 卷积"
 """
 import argparse
+import difflib
 import json
 import os
 import sys
+import unicodedata
 from collections import defaultdict
 
 LABELS = {
     "zh": {"slide": "第{n}页", "screen": "屏幕文字", "dyn": "屏幕在变化（滚动或播放），抽样帧：", "sub": "字幕",
+           "flash": "屏幕闪现", "xline": "字幕/语音不一致（字幕在前，语音在后）",
+           "xcheck": "字幕与语音不一致：{n} 处（逐条标在字幕下方；至少有一边是错的，以原片为准）",
            "note": "备注", "legend": "图例：{词?} = 识别置信度低的词；[!x] = 被标记的片段；（笑声）等 = 声音事件",
            "sources": "来源", "speakers": "说话人", "dur": "时长", "unknown": "未知"},
     "en": {"slide": "Slide {n}", "screen": "On screen", "dyn": "Screen changing (scroll / playback), samples:",
+           "flash": "on screen briefly", "xline": "subtitle / speech differ (subtitle first)",
+           "xcheck": "subtitle vs speech disagreements: {n} (marked under each subtitle; at least one side is wrong)",
            "sub": "subtitle", "note": "note", "legend": "Legend: {word?} = low-confidence word; [!x] = flagged; "
            "(laughter) etc. = sound events", "sources": "Sources", "speakers": "Speakers", "dur": "Duration",
            "unknown": "unknown"},
@@ -68,6 +74,39 @@ def marked_text(row, low):
     return " ".join(text.split()) if any(c.isascii() and c.isalpha() for c in text) else text.replace(" ", "")
 
 
+def plain(s):
+    s = unicodedata.normalize("NFKC", s).lower()
+    return "".join(c for c in s if unicodedata.category(c)[0] in "LN")
+
+
+def cross_check(subs, asr_rows):
+    """Subtitle text vs what was heard in the same span. Where they differ, at least one is wrong:
+    OCR drops or swaps characters, ASR mishears homophones. Neither source is trusted blindly."""
+    words = [w for r in asr_rows for w in (r.get("words") or [])]
+    n = 0
+    for s in subs:
+        # take a generous window (ASR word times can be off by a second or more), then keep only the
+        # stretch that actually matches the subtitle, so neighbouring sentences do not count as errors
+        heard = "".join(w[2] for w in words if s["t0"] - 3.0 <= (w[0] + w[1]) / 2 <= s["t1"] + 3.0)
+        a, wide = plain(s["text"]), plain(heard)
+        if not a or not wide:
+            continue
+        blocks = [m for m in difflib.SequenceMatcher(None, a, wide, autojunk=False).get_matching_blocks() if m.size]
+        if not blocks:
+            continue
+        b0 = max(0, blocks[0].b - blocks[0].a)
+        b1 = min(len(wide), blocks[-1].b + blocks[-1].size + (len(a) - blocks[-1].a - blocks[-1].size))
+        b = wide[b0:b1]
+        sm = difflib.SequenceMatcher(None, a, b, autojunk=False)
+        if sm.ratio() < 0.5:  # not the same sentence: do not guess
+            continue
+        d = [(a[i1:i2], b[j1:j2]) for op, i1, i2, j1, j2 in sm.get_opcodes() if op != "equal"]
+        if d:
+            s["xcheck"] = d
+            n += len(d)
+    return n
+
+
 def main():
     try:
         sys.stdout.reconfigure(encoding="utf-8")
@@ -102,6 +141,10 @@ def main():
             slides = json.load(fh)
         for s in slides:
             sv = args.shift_video
+            if s["kind"] == "flash":  # on screen for about a second: often the one fact nobody says aloud
+                rows.append({"t0": round(s["start"] + sv, 2), "t1": round(s["end"] + sv, 2), "src": "flash",
+                             "spk": None, "text": s.get("ocr", ""), "conf": None, "flags": [], "ref": s.get("file")})
+                continue
             rows.append({"t0": round(s["start"] + sv, 2), "t1": round(s["end"] + sv, 2), "src": "slide",
                          "spk": None, "text": s.get("ocr", ""), "conf": None, "flags": [s["kind"]],
                          "ref": s.get("file"), "group": s.get("group"),
@@ -131,13 +174,14 @@ def main():
     if not rows:
         sys.exit("nothing to fuse: give --asr / --slides / --subs / --notes")
     rows.sort(key=lambda r: (r["t0"], r["src"] != "slide"))
+    n_x = cross_check([r for r in rows if r["src"] == "sub"], [r for r in rows if r["src"] == "asr"])
 
     with open(args.out, "w", encoding="utf-8") as fh:
         for r in rows:
             fh.write(json.dumps({k: v for k, v in r.items() if v not in (None, [], "")}, ensure_ascii=False) + "\n")
 
     # ---------- Markdown for reading ----------
-    speech = [r for r in rows if r["src"] in ("asr", "sub", "note")]
+    speech = [r for r in rows if r["src"] in ("asr", "sub", "note", "flash")]
     end_t = max(r["t1"] for r in rows)
     talk = defaultdict(float)
     for r in rows:
@@ -181,14 +225,21 @@ def main():
         while t < end_t:
             sections.append((t, min(t + args.section, end_t), f"[{ts(t)}–{ts(min(t + args.section, end_t))}]", []))
             t += args.section
+    # sections are contiguous: anything between two slides (a flash, a pause) belongs to the earlier one
+    sections = [(a, sections[k + 1][0] if k + 1 < len(sections) else max(b, end_t), h, p)
+                for k, (a, b, h, p) in enumerate(sections)]
 
     out = [f"# {args.title}", "",
            f"- {L['dur']}: {ts(end_t)}",
            f"- {L['sources']}: " + ", ".join(f"{k} {sum(1 for r in rows if r['src'] == k)}"
-                                             for k in ("asr", "slide", "sub", "event", "note")
-                                             if any(r["src"] == k for r in rows)),
-           f"- {L['speakers']}: " + ", ".join(f"{k} {v / 60:.1f} min" for k, v in sorted(talk.items(), key=lambda kv: -kv[1])),
-           f"- {L['legend']}", ""]
+                                             for k in ("asr", "slide", "flash", "sub", "event", "note")
+                                             if any(r["src"] == k for r in rows))]
+    if any(r.get("spk") for r in rows if r["src"] == "asr"):
+        out.append(f"- {L['speakers']}: " + ", ".join(f"{k} {v / 60:.1f} min"
+                                                    for k, v in sorted(talk.items(), key=lambda kv: -kv[1])))
+    if any(r["src"] == "sub" for r in rows):
+        out.append(f"- {L['xcheck'].format(n=n_x)}")
+    out += [f"- {L['legend']}", ""]
     used = set()
     for k, (a, b, head, pre) in enumerate(sections):
         last = k == len(sections) - 1
@@ -213,6 +264,13 @@ def main():
                 out.append(f"- [{ts(r['t0'])}] {spk + '：' if spk else ''}{text}{tail}{flags}")
             elif r["src"] == "sub":
                 out.append(f"- [{ts(r['t0'])}] 〔{L['sub']}〕{r['text']}")
+                if r.get("xcheck"):
+                    pairs = "；".join(f"「{x or '∅'}」/「{y or '∅'}」" for x, y in r["xcheck"])
+                    out.append(f"  - ⚠ {L['xline']}：{pairs}")
+            elif r["src"] == "flash":
+                body = " / ".join(x.strip() for x in (r["text"] or "").splitlines() if x.strip()) or "?"
+                out.append(f"- [{ts(r['t0'])}] **〔{L['flash']} {r['t1'] - r['t0']:.1f}s〕{body}**"
+                           + (f" ({r['ref']})" if r.get("ref") else ""))
             else:
                 out.append(f"- [{ts(r['t0'])}] 〔{L['note']}〕{r['text']}")
         out.append("")

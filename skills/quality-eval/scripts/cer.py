@@ -8,7 +8,7 @@ CER = (substitutions + deletions + insertions) / reference characters, after:
 Without --num, "十二月" vs "12月" counts as 3 errors: ITN mismatches can dominate CER.
 
 Also reports keyword recall (--keywords: names, terms, numbers) because a 5% CER that gets every
-name wrong is worse for minutes than a 10% CER that gets them right.
+name wrong is worse for any summary than a 10% CER that gets them right.
 
 usage:
   python cer.py --ref ref.txt --hyp hyp.txt [--num] [--t2s] [--keywords kw.txt] [--show 15]

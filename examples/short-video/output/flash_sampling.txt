@@ -1,0 +1,9 @@
+[video] segments.json  50.4s, 7 screen states (2 flashes), 0 dynamic stretches
+  truth on-screen items: 2 (shortest 1.0s)
+     uniform 8 frames       8 frames -> sees 0/2 (0%)
+     uniform 16 frames     16 frames -> sees 1/2 (50%)
+     uniform 32 frames     32 frames -> sees 1/2 (50%)
+     0.5 fps               26 frames -> sees 1/2 (50%)
+     1 fps                 51 frames -> sees 2/2 (100%)
+     change detection       7 frames -> finds 2/2 (100%)
+  screen states with empty OCR: none

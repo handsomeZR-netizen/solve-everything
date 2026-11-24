@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Speech -> timestamped text with faster-whisper, tuned for Chinese meetings and long recordings.
+"""Speech -> timestamped text with faster-whisper, tuned for Chinese and long, real-world recordings.
 
 Output is JSONL, one segment per line:
   {"start": 12.34, "end": 15.6, "text": "...", "avg_logprob": -0.21, "no_speech_prob": 0.01,
@@ -8,7 +8,7 @@ plus OUT.meta.json with the model, every decoding parameter and the run time (fo
 
 usage:
   python transcribe.py audio.wav --out asr.jsonl
-  python transcribe.py audio.wav --out asr.jsonl --hotwords "北极星 P99 压测" --prompt "项目周会。"
+  python transcribe.py audio.wav --out asr.jsonl --hotwords "傅里叶 卷积 Transformer" --prompt "机器学习课程。"
   python transcribe.py audio.wav --out asr.jsonl --no-vad --chunk 28 --overlap 2   # singing, whispering
   python transcribe.py audio.wav --out asr.jsonl --model small --threads 8           # quick draft
 
@@ -80,6 +80,35 @@ def zh_punct(text):
         else:
             out.append(c)
     return "".join(out)
+
+
+SENT_END = "。！？!?；;"
+
+
+def split_sentences(rec, max_dur=12.0):
+    """One record per sentence. With a music bed or very even pacing, VAD + Whisper can return a
+    single 30-second segment; downstream steps (sections, speakers, cross-checks) need sentences."""
+    ws = rec["words"]
+    if len(ws) < 2:
+        return [rec]
+    groups, cur = [], []
+    for w in ws:
+        cur.append(w)
+        tail = w[2].strip()[-1:]
+        if tail in SENT_END or (tail in "，,、" and w[1] - cur[0][0] > max_dur):
+            groups.append(cur)
+            cur = []
+    if cur:
+        groups.append(cur)
+    if len(groups) == 1:
+        return [rec]
+    out = []
+    for g in groups:
+        text = "".join(w[2] for w in g).strip()
+        if not text:
+            continue
+        out.append({**rec, "start": g[0][0], "end": g[-1][1], "text": " ".join(text.split()), "words": g})
+    return out
 
 
 def flag_segment(seg, args):
@@ -180,7 +209,7 @@ def main():
         # Bare space-separated hotwords become the only prompt of every later window, and an
         # unpunctuated prompt makes Whisper stop punctuating. Wrap them in a punctuated sentence.
         terms = [t for t in re.split(r"[\s,;]+", hotwords) if t]
-        hotwords = "会议中可能出现：" + "、".join(terms) + "。"
+        hotwords = "可能出现的词：" + "、".join(terms) + "。"
     kw = dict(
         language=lang, task="transcribe", beam_size=args.beam,
         temperature=(0.0, 0.2, 0.4, 0.6, 0.8, 1.0) if args.fallback else 0.0,
@@ -222,6 +251,7 @@ def main():
             print(f"[{s.start:7.2f}] {records[-1]['text']}", flush=True)
     asr_s = time.time() - t1
 
+    records = [s for r in records for s in split_sentences(r)]
     kept, dropped = [], 0
     for r in records:
         r["flags"] = flag_segment(r, args)

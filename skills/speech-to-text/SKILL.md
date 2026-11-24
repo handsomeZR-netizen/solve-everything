@@ -1,19 +1,19 @@
 ---
 name: speech-to-text
 description: >-
-  Turn speech into timestamped, confidence-scored text that is good enough to build minutes, subtitles
+  Turn speech into timestamped, confidence-scored text that is good enough to build notes, subtitles
   or analysis on: faster-whisper with tuned defaults for Chinese (simplified output, punctuation,
   hallucination filtering, repetition-loop guards, hotwords, VAD or overlapped chunking), SenseVoice ONNX
   as a fast second opinion with emotion and laughter/applause tags, and forced-alignment scoring that
   lets the audio decide between candidate spellings of names, terms and numbers. Use whenever audio has
-  to become text: meetings, lectures, interviews, podcasts, voice memos, video dialogue, song lyrics, and
+  to become text: short videos, lectures, interviews, podcasts, livestreams, voice memos, video dialogue, song lyrics, and
   whenever a transcript has wrong names, traditional characters, made-up sentences or repeated lines.
   语音转文字、转写、字幕、ASR、识别不准、人名识别错、繁体、幻觉、重复，都用这个。
 ---
 
 # speech-to-text：把声音变成可信的文字
 
-目标不是"有文字"，而是**带时间戳、带置信度、关键信息可核实**的文字。纪要里错一个人名或数字，比错十个虚词严重得多。
+目标不是"有文字"，而是**带时间戳、带置信度、关键信息可核实**的文字。输出里错一个人名或数字，比错十个虚词严重得多。
 
 ## 选引擎
 
@@ -21,7 +21,7 @@ description: >-
 |---|---|---|---|
 | faster-whisper large-v3-turbo | 中英混说、标点、逐词时间戳、稳 | 静音处会编句子；CPU 上 RTF 约 0.6–1.8 | `transcribe.py`（主力） |
 | SenseVoice-Small (ONNX) | 很快；带情绪、笑声/掌声等事件标签 | 基础版没有时间戳 | `sensevoice_onnx.py`（第二意见） |
-| FunASR Paraformer-zh | 中文会议最强之一；VAD+标点+逐字时间戳+说话人一条龙；热词 | 中英混说较弱；模型从 ModelScope 下载 | 见 [references/engines.md](references/engines.md) |
+| FunASR Paraformer-zh | 中文长音频强项；VAD+标点+逐字时间戳+说话人一条龙；热词 | 中英混说较弱；模型从 ModelScope 下载 | 见 [references/engines.md](references/engines.md) |
 
 默认：Whisper 出主稿，SenseVoice 交叉核对，拿不准的地方用候选打分裁决。
 
@@ -29,7 +29,7 @@ description: >-
 
 ```bash
 python ${CLAUDE_SKILL_DIR}/scripts/transcribe.py audio.wav --out asr.jsonl \
-    --hotwords "北极星 P99 压测 王总 李工" [--prompt "项目周会。"] [--model large-v3-turbo] [--local-only]
+    --hotwords "傅里叶 卷积 Transformer" [--prompt "机器学习课程。"] [--model large-v3-turbo] [--local-only]
 # 唱歌、耳语等会被 VAD 误切的素材：关 VAD，手动重叠切块
 python ${CLAUDE_SKILL_DIR}/scripts/transcribe.py song_vocal.wav --out lyr.jsonl --no-vad --chunk 28 --overlap 2
 ```
@@ -47,12 +47,14 @@ python ${CLAUDE_SKILL_DIR}/scripts/transcribe.py song_vocal.wav --out lyr.jsonl 
 ### 已经踩过的坑（都在脚本里处理了）
 
 1. **幻觉句**：静音或纯音乐段会冒出"字幕由Amara.org社区提供""请不吝点赞订阅转发打赏"之类训练数据里的句子。强特征的直接删除，"谢谢观看"这类弱特征只标 `hallucination?`，交给人或 LLM 判断。完整列表在脚本开头。
-2. **hotwords 让标点消失**：`initial_prompt` 只作用于第一个 30 秒窗口（关掉 condition_on_previous_text 后尤其如此），之后每个窗口的提示词只剩 hotwords。如果 hotwords 是空格分隔的词表，Whisper 会照着这种格式输出无标点的文本。实测：加上 `--hotwords "北极星 P99 王总"` 后整段转写都没了标点。脚本会把它包装成一句带标点的话（"会议中可能出现：北极星、P99、王总。"），问题就消失了。
+2. **hotwords 让标点消失**：`initial_prompt` 只作用于第一个 30 秒窗口（关掉 condition_on_previous_text 后尤其如此），之后每个窗口的提示词只剩 hotwords。如果 hotwords 是空格分隔的词表，Whisper 会照着这种格式输出无标点的文本。实测：加上一串空格分隔的专名做 hotwords 后，整段转写都没了标点。脚本会把它包装成一句带标点的话（"可能出现的词：傅里叶、卷积、Transformer。"），问题就消失了。
 3. **半角标点**：中文里常出现 `,` `?`，脚本会把与汉字相邻的标点统一成全角。
 4. **`segs` 是生成器**：`transcribe()` 立刻返回，真正的识别发生在遍历时。计时、多进程时别被骗。
 5. **PyAV 版本**：faster-whisper 的 `decode_audio` 在 PyAV 19 上会崩，脚本改用 ffmpeg 管道解码。
-6. **两个人被并成一段**：两人之间的停顿短于 VAD 阈值时，会出现在同一个 segment 里。说话人分离要按词或按句处理（`speaker-diarization` 已处理）。
-7. **数字写法**：Whisper 会把"四万八"写成"4万8"、"48000"或"4.8万"，同一个模型不同次运行也不一样。评测时用 `quality-eval/scripts/cer.py --num`，成稿时以 PPT 或文档上的写法为准。
+6. **一段 35 秒的"句子"**：背景有音乐时，VAD 会把整段当成连续语音，Whisper 返回一个横跨 35 秒、包含 5 句话的片段，后面的分节、说话人、互证都没法做。现在脚本按句末标点和逐词时间戳把它切成一句一行。
+7. **两个人被并成一段**：两人之间的停顿比 VAD 阈值短时，会出现在同一个片段里。按句切开之后，说话人分离再按词处理（`speaker-diarization` 已处理）。
+8. **数字写法**：Whisper 会把"四万八"写成"4万8"、"48000"或"4.8万"，同一个模型不同次运行结果也不一样。评测时用 `quality-eval/scripts/cer.py --num`，成稿时以画面或文档上的写法为准。
+9. **同音字**：「它」听成「他」、「音轨」听成「音柜」，这类错误 Whisper 自己发现不了。有字幕时 `timeline-fusion` 会逐字比对；没有字幕时，对关键词用下面的候选打分。
 
 ## 第二意见：SenseVoice
 
@@ -70,17 +72,17 @@ LLM 擅长猜"这里可能是哪几个词"，声学模型擅长判断"哪个和�
 
 ```bash
 python ${CLAUDE_SKILL_DIR}/scripts/score_candidates.py audio.wav --start 59.2 --end 63.4 \
-    --cand "等王总确认" --cand "等网总确认" --cand "等汪总确认"
+    --cand "等王总确认" --cand "等网总确认" --cand "等汪总确认"   # 人名同音字
 # 批量：--cases cases.json  ([{"start","end","candidates":[...]}])
 ```
 
 流程：
 
-1. 在时间线里找出可疑处：`{词?}` 标记、和 PPT 或参会名单不一致的专名、两个引擎结果不同的地方。
-2. 根据上下文、PPT OCR 和名单，列出 2–5 个候选**整句**。
-3. 打分。脚本会只比较候选之间不同的那部分词的平均对数概率（`focus_logprob`）；差距小于 0.1 时会提示"太接近，问人"。
+1. 在时间线里找出可疑处：`{词?}` 标记、和画面文字或已知名单不一致的专名、两个引擎结果不同的地方。
+2. 根据上下文、画面 OCR 和已知名单，列出 2–5 个候选**整句**。
+3. 打分。脚本只比较候选之间不同的那几个词的平均对数概率（`focus_logprob`）；差距小于 0.1 时会提示"太接近，问人"。
 
-演示数据上的实测：「王」-0.15 对「网」-0.58；「4万8」-0.57 对「48万」-4.35。
+开发时在一段合成多人对话上的实测：「王」-0.15 对「网」-0.58（第一遍转写给的是「网」）；「4万8」-0.57 对「48万」-4.35。
 
 限制：片段不超过 30 秒；用到了 `find_alignment` 等内部接口（每个候选单独对齐，batch 维度必须是 1），升级 faster-whisper 前先锁版本测一遍。
 

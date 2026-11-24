@@ -99,7 +99,7 @@ def main():
     p.add_argument("--track", type=int, default=0, help="audio track index (0:a:N)")
     p.add_argument("--sr", type=int, default=16000)
     p.add_argument("--stereo", action="store_true", help="keep two channels (music / mid-side work)")
-    p.add_argument("--loudnorm", action="store_true", help="normalise loudness (recommended for meetings)")
+    p.add_argument("--loudnorm", action="store_true", help="normalise loudness (recommended for speech with several voices or a far microphone)")
     p.add_argument("--ss", type=float, default=0.0); p.add_argument("--t", type=float, default=0.0)
     p.set_defaults(fn=cmd_audio)
 

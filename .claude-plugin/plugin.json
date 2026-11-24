@@ -1,8 +1,8 @@
 {
   "name": "solve-everything",
   "displayName": "Solve Everything",
-  "version": "0.1.0",
-  "description": "LLM + code for every modality: probe and unpack media, transcribe with guards against hallucination, diarize speakers, read screens and burned-in subtitles, extract PDFs, analyse music, fuse everything into one timeline, check it visually, and write minutes and summaries that keep every fact. Better input, better output.",
+  "version": "0.2.0",
+  "description": "Did the LLM really process all of your input? 13 skills that inventory every input, turn audio, video, screens, documents and music into timestamped, confidence-scored text with code, cross-check the modalities, prove coverage, and only then let the model write, with a coverage statement any agent can trust. Better input, better output.",
   "author": {
     "name": "handsomeZR-netizen",
     "url": "https://github.com/handsomeZR-netizen"
@@ -10,5 +10,5 @@
   "homepage": "https://github.com/handsomeZR-netizen/solve-everything",
   "repository": "https://github.com/handsomeZR-netizen/solve-everything",
   "license": "MIT",
-  "keywords": ["multimodal", "asr", "whisper", "ocr", "diarization", "meeting-minutes", "summarization", "video", "audio", "pdf", "skills"]
+  "keywords": ["multimodal", "input-audit", "coverage", "asr", "whisper", "ocr", "video", "audio", "pdf", "office", "agents", "skills"]
 }

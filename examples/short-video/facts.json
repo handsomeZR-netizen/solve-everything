@@ -1,0 +1,14 @@
+[
+ {"id": "H1", "kind": "hidden", "text": "评论区口令 SE-0618（屏幕闪现 1 秒）", "must": ["SE-0618"], "ref": "clip.mp4 00:20"},
+ {"id": "H2", "kind": "hidden", "text": "下次直播 12月6日 20:00（屏幕闪现 1 秒）", "must": ["12月6日", "20:00"], "ref": "clip.mp4 00:40"},
+ {"id": "H3", "kind": "hidden", "text": "扫描页：结论以本页为准，预算上限 3.5 万元", "must": ["3.5万", "结论以本页为准"], "ref": "report.pdf p.2"},
+ {"id": "H4", "kind": "hidden", "text": "长截图最后一行：交付时间改到周四下午三点", "must": ["周四下午三点"], "ref": "long_screenshot.png"},
+ {"id": "H5", "kind": "hidden", "text": "演讲备注：已经决定选 B", "must": ["决定选B"], "ref": "deck.pptx slide 1 notes"},
+ {"id": "H6", "kind": "hidden", "text": "隐藏页：供应商可能延期两周", "must": ["延期两周"], "ref": "deck.pptx slide 2"},
+ {"id": "H7", "kind": "hidden", "text": "批注：这一条要改，先别发", "must": ["先别发"], "ref": "notes.docx comment"},
+ {"id": "H8", "kind": "hidden", "text": "隐藏表原始数据 A = 130", "must": ["130"], "ref": "data.xlsx 原始数据"},
+ {"id": "C1", "kind": "conflict", "text": "汇总 100 vs 原始数据 130", "must": ["100", "130"], "ref": "data.xlsx"},
+ {"id": "C2", "kind": "conflict", "text": "正文按原计划推进 vs 批注先别发", "must": ["按原计划推进", "先别发"], "ref": "notes.docx"},
+ {"id": "X1", "kind": "number", "text": "口播与字幕不一致 7 处：语音 4、OCR 3", "must": ["7 处", "4 处", "3 处"], "ref": "timeline.md"},
+ {"id": "X2", "kind": "risk", "text": "OCR 漏掉「没」导致意思相反", "must": ["没被处理"], "ref": "clip.mp4 00:32"}
+]

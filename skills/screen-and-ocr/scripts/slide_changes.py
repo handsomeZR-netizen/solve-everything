@@ -108,13 +108,21 @@ def main():
 
     dt = 1.0 / args.fps
     settle_n = max(1, int(round(args.settle * args.fps)))
-    segs = []
+    segs, flashes, pending = [], [], []
     state, ref, last, seg_start, last_stable = "stable", None, None, 0.0, 0.0
     change_start, still, i = 0.0, 0, -1
+    plat_start, plat_f = 0.0, None
 
     def close_static(end, rep):
         segs.append({"kind": "static", "start": round(seg_start, 2), "end": round(end, 2),
                      "rep_t": round(rep, 2), "ref": ref})
+
+    def flush_plateau(t_end):
+        # A short plateau inside a transition (>= 2 identical samples, but shorter than --settle) that
+        # differs from the page before it: a card or popup that flashed by. Waiting for the picture
+        # to "settle" would throw exactly these away, and they often carry the one fact nobody says.
+        if plat_f is not None and still >= 1 and frac(plat_f, ref) > args.area:
+            pending.append({"start": plat_start, "end": t_end, "f": plat_f})
 
     for i, f in enumerate(stream_thumbs(args.video, args.fps, crop, aw, ah)):
         t = i * dt
@@ -125,31 +133,48 @@ def main():
             if frac(f, ref) <= args.area:
                 last_stable = t
             else:
-                state, change_start, still = "changing", t, 0
+                state, change_start, still, plat_start, plat_f, pending = "changing", t, 0, t, f, []
         else:
-            still = still + 1 if frac(f, last) <= args.area else 0
+            if frac(f, last) <= args.area:
+                still += 1
+            else:
+                flush_plateau(t)
+                still, plat_start, plat_f = 0, t, f
             if still >= settle_n:
-                settle_t = t - (settle_n - 1) * dt
-                if frac(f, ref) <= args.area:  # a popup or a pointer came and went: same page
+                settle_t = plat_start
+                if frac(f, ref) <= args.area:  # back to the same page (popup, pointer, flash card)
                     state, last_stable = "stable", t
+                    flashes.extend(pending)
                 else:
                     close_static(change_start, last_stable)
+                    flashes.extend(p for p in pending if frac(p["f"], f) > args.area)
                     if settle_t - change_start >= args.dynamic:
                         segs.append({"kind": "dynamic", "start": round(change_start, 2), "end": round(settle_t, 2)})
                     seg_start, last_stable, ref, state = settle_t, t, f, "stable"
+                pending = []
         last = f
     if ref is None:
         sys.exit("no frames decoded")
     end_t = (i + 1) * dt
+    if state == "changing":
+        flush_plateau(end_t)
+        flashes.extend(pending)
     if state == "changing" and end_t - change_start >= args.dynamic:
         close_static(change_start, last_stable)
         segs.append({"kind": "dynamic", "start": round(change_start, 2), "end": round(end_t, 2)})
     else:
         close_static(end_t, last_stable)
+    for p in flashes:
+        rep = p["start"] + max(0.0, p["end"] - p["start"] - dt) / 2
+        segs.append({"kind": "flash", "start": round(p["start"], 2), "end": round(p["end"], 2),
+                     "rep_t": round(rep, 2), "ref": p["f"]})
+    segs.sort(key=lambda s: (s["start"], s["kind"] != "static"))
 
     # link additive builds: small change whose changed pixels were empty background before
     group, prev_static = -1, None
     for s in segs:
+        if s["kind"] == "flash":
+            continue
         if s["kind"] != "static":
             prev_static = None
             continue
@@ -181,8 +206,8 @@ def main():
 
     if not args.no_frames:
         for s in segs:
-            if s["kind"] == "static":
-                s["file"] = f"slide_{s['i']:03d}.png"
+            if s["kind"] in ("static", "flash"):
+                s["file"] = f"{'slide' if s['kind'] == 'static' else 'flash'}_{s['i']:03d}.png"
                 grab(args.video, s["rep_t"], crop, os.path.join(args.out, s["file"]))
             else:
                 s["samples"] = []
@@ -195,9 +220,10 @@ def main():
     with open(os.path.join(args.out, "segments.json"), "w", encoding="utf-8") as fh:
         json.dump(segs, fh, ensure_ascii=False, indent=1)
     n_static = sum(1 for s in segs if s["kind"] == "static")
+    n_flash = sum(1 for s in segs if s["kind"] == "flash")
     n_groups = len(last_of_group)
-    print(f"{n_static} static segments in {n_groups} slide groups, "
-          f"{len(segs) - n_static} dynamic stretches -> {args.out}/segments.json")
+    print(f"{n_static} static segments in {n_groups} slide groups, {n_flash} flash(es), "
+          f"{len(segs) - n_static - n_flash} dynamic stretches -> {args.out}/segments.json")
     for s in segs:
         extra = (" build" if s.get("build") else "") + ("" if s.get("complete", True) else " (partial)")
         print(f"  #{s['i']:3d} {s['kind']:7s} {s['start']:8.2f}-{s['end']:8.2f}{extra}")

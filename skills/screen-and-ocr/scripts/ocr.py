@@ -130,8 +130,10 @@ def ocr_image(run, path, min_score, upscale):
         weak = not items or min(i[5] for i in items) < 0.8
         if weak and min(w, h) < 720:
             items2, low2 = _detect(run, im, 2, min_score)
-            mass = lambda its: sum(i[5] * len(i[4]) for i in its)
-            if mass(items2) > mass(items):
+            # compare mean confidence, not amount of text: a bad upscale can produce *more*
+            # characters that are garbage (tested: "12月6日20:00" at 1x vs "12月６日日2 20:00" at 2x)
+            quality = lambda its: sum(i[5] for i in its) / len(its) if its else 0.0
+            if not items or quality(items2) > quality(items) + 0.02:
                 items, low, k = items2, low2, 2
     lines = []
     for L in to_lines(items, w):
@@ -162,7 +164,7 @@ def main():
         with open(args.segments, encoding="utf-8") as fh:
             segs = json.load(fh)
         for s in segs:
-            if s.get("kind") == "static" and s.get("file") and (s.get("complete", True) or args.all_builds):
+            if s.get("kind") in ("static", "flash") and s.get("file") and (s.get("complete", True) or args.all_builds):
                 r = ocr_image(run, os.path.join(base, s["file"]), args.min_score, args.upscale)
                 s["ocr"] = r["text"]
                 s["ocr_lines"] = r["lines"]

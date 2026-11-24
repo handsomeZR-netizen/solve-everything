@@ -83,7 +83,7 @@
     <rect x="176" y="31" width="60" height="10" rx="5" fill="#59a14f"/>
     <rect x="14" y="48" width="104" height="10" rx="3" fill="#cdd9f0" fill-opacity="0.55"/>
     <rect x="122" y="48" width="114" height="10" rx="3" fill="#e0d2f0" fill-opacity="0.55"/>
-    <text x="125" y="96" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#cbd5e1" text-anchor="middle">时间线 · 置信度 · 互证</text>
+    <text x="125" y="96" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#cbd5e1" text-anchor="middle">盘点 · 互证 · 对账 100%</text>
   </g>
 
   <rect x="930" y="294" width="110" height="8" rx="4" fill="url(#flow)"/>
@@ -97,6 +97,6 @@
     <line x1="18" y1="36" x2="80" y2="36" stroke="#94a3b8" stroke-width="3" stroke-linecap="round"/>
     <line x1="18" y1="50" x2="70" y2="50" stroke="#94a3b8" stroke-width="3" stroke-linecap="round"/>
     <path d="M100 42 L110 52 L126 32" fill="none" stroke="#4ade80" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-    <text x="70" y="96" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#cbd5e1" text-anchor="middle">纪要 · 笔记 · 报告</text>
+    <text x="70" y="96" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#cbd5e1" text-anchor="middle">输出 · 交接 · 决策</text>
   </g>
 </svg>
