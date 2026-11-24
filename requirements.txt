@@ -1,0 +1,22 @@
+# solve-everything: install only the groups you need.  Also required: ffmpeg + ffprobe on PATH.
+# Versions are the ones the scripts were tested with (Python 3.13, Windows 11, CPU only).
+
+# core (every skill)
+numpy>=1.26            # tested 2.3.5
+pillow>=10             # tested 12.1.1
+scipy>=1.11            # tested 1.17.0
+
+# speech-to-text
+faster-whisper>=1.1    # tested 1.2.1 (score_candidates.py uses internals: pin it)
+opencc-python-reimplemented>=0.1.7   # traditional -> simplified
+onnxruntime>=1.17      # SenseVoice ONNX; tested 1.20.1
+
+# speaker-diarization (lite baseline), music-and-sound
+librosa>=0.10          # tested 0.11.0
+soundfile>=0.12        # tested 0.13.1
+
+# screen-and-ocr
+rapidocr-onnxruntime>=1.2   # tested 1.2.3; the newer `rapidocr` package also works
+
+# docs-and-images
+pymupdf>=1.24          # tested 1.27.2

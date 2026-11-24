@@ -1,0 +1,21 @@
+{
+  "name": "solve-everything",
+  "owner": {
+    "name": "handsomeZR-netizen",
+    "url": "https://github.com/handsomeZR-netizen"
+  },
+  "metadata": {
+    "description": "Multimodal processing skills: LLM + code for audio, video, screens, documents and music.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "solve-everything",
+      "source": "./",
+      "description": "12 skills that turn recordings, screen captures, PDFs and songs into timestamped, confidence-scored input, then into output people can act on.",
+      "version": "0.1.0",
+      "category": "productivity",
+      "tags": ["multimodal", "asr", "ocr", "meeting-minutes", "video", "audio", "pdf"]
+    }
+  ]
+}

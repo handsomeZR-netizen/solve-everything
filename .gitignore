@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+work/
+build/
+*-workspace/
+*.wav
+*.mp4
+*.m4a
+*.mp3
+.DS_Store
+Thumbs.db

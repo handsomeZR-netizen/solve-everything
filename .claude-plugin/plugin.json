@@ -1,0 +1,14 @@
+{
+  "name": "solve-everything",
+  "displayName": "Solve Everything",
+  "version": "0.1.0",
+  "description": "LLM + code for every modality: probe and unpack media, transcribe with guards against hallucination, diarize speakers, read screens and burned-in subtitles, extract PDFs, analyse music, fuse everything into one timeline, check it visually, and write minutes and summaries that keep every fact. Better input, better output.",
+  "author": {
+    "name": "handsomeZR-netizen",
+    "url": "https://github.com/handsomeZR-netizen"
+  },
+  "homepage": "https://github.com/handsomeZR-netizen/solve-everything",
+  "repository": "https://github.com/handsomeZR-netizen/solve-everything",
+  "license": "MIT",
+  "keywords": ["multimodal", "asr", "whisper", "ocr", "diarization", "meeting-minutes", "summarization", "video", "audio", "pdf", "skills"]
+}
